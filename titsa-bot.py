@@ -6,6 +6,9 @@ from api_handler import ApiHandler
 from telegram.ext import CommandHandler, MessageHandler, Updater, Filters
 import telegram as telegram
 import logging
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 apiHandler = None
 
@@ -15,7 +18,7 @@ def process_xml(xml_titsa):
         text = "🚏" +  xml_titsa[0].find("denominacion").text + "🚏\n\n"
         for linea in xml_titsa:
             text += "🚍*" + linea.find("linea").text + "*(" + linea.find("destinoLinea").text + \
-                    "): " + linea.find("minutosParaLlegar").text + " minutos \n"
+                    "): "+ linea.find("minutosParaLlegar").text + " minutos \n"
         
         return text, 1
     else:

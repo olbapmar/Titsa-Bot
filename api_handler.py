@@ -13,10 +13,10 @@ class ApiHandler:
         
         req = urllib2.Request(url_final)
         response = urllib2.urlopen(req)
+
         if response.getcode() == 200:
-            text = response.read().decode('utf-8')
+            text = response.read().decode('iso-8859-1')
             print text
-            parser = ET.XMLParser(encoding="utf8")
-            root = ET.fromstring(text, parser=parser)
+            root = ET.fromstring(text.encode('utf8'))
             return root
         return None
