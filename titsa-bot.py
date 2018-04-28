@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import xml.etree.ElementTree as ET
+import ConfigParser
 from api_handler import ApiHandler
 
 def process_xml(xml_titsa):
@@ -17,5 +18,14 @@ def process_xml(xml_titsa):
         return text, 0
 
 
+def main():
+    config = ConfigParser.ConfigParser()
+    config.read('bot_config.ini')
+    
+    bot_token = config.get("TELEGRAM", "token")
+    titsa_idApp = config.get("TITSA", "idApp")
 
-print process_xml(ApiHandler.new_request("9354"))[0]
+    apiHandler = ApiHandler(titsa_idApp)
+
+if __name__ == "__main__":
+    main()
