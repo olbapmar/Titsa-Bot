@@ -1,4 +1,5 @@
 import urllib2
+import xml.etree.ElementTree as ET
 
 class ApiHandler:
     KEY = "4e4bfc034a0852b27922205222070521"
@@ -10,5 +11,10 @@ class ApiHandler:
         url_final = ApiHandler.URL + str(id) + ApiHandler.URL2
 
         req = urllib2.Request(url_final)
-        response = urllib2.urlopen(req).read()
-        print response
+        response = urllib2.urlopen(req)
+        if response.getcode() == 200:
+            text = response.read()
+            print text
+            root = ET.fromstring(text)
+            return root
+        return None
