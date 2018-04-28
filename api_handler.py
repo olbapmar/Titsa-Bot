@@ -10,12 +10,13 @@ class ApiHandler:
 
     def new_request(self, id):
         url_final = ApiHandler.URL + str(id) + ApiHandler.URL2 + self.idApp
-
+        
         req = urllib2.Request(url_final)
         response = urllib2.urlopen(req)
         if response.getcode() == 200:
-            text = response.read()
+            text = response.read().decode('utf-8')
             print text
-            root = ET.fromstring(text)
+            parser = ET.XMLParser(encoding="utf8")
+            root = ET.fromstring(text, parser=parser)
             return root
         return None
