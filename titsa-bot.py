@@ -16,7 +16,7 @@ sys.setdefaultencoding('utf-8')
 apiHandler = None
 
 class TitsaBot:
-    CUSTOM_OR_DEFAULT, INSERT_CUSTOM = range(2)
+    CUSTOM_OR_DEFAULT, INSERT_CUSTOM, TRANVIA = range(3)
     def __init__(self):
         config = ConfigParser.ConfigParser()
         config.read('bot_config.ini')
@@ -34,7 +34,8 @@ class TitsaBot:
 
         b1 = telegram.KeyboardButton("⭐ Consultar favorito ⭐")
         b2 = telegram.KeyboardButton("✖️ Borrar favorito ✖️")
-        self.keyboard = telegram.ReplyKeyboardMarkup([[b1], [b2]], resize_keyboard=True)
+        b3 = telegram.KeyboardButton("🚊 Tranvia de Tenerife 🚊")
+        self.keyboard = telegram.ReplyKeyboardMarkup([[b3], [b1], [b2]], resize_keyboard=True)
 
         h1 = MessageHandler(Filters.regex(r"^.+Consultar favorito.+$"), self.favKeyBoard)
         h2 = MessageHandler(Filters.regex(u"^\U0001F68F.+(\d{4})"), self.replyToFav)
@@ -47,6 +48,14 @@ class TitsaBot:
         updater.dispatcher.add_handler(h2)
         updater.dispatcher.add_handler(h3)
         updater.dispatcher.add_handler(h4)
+
+        updater.dispatcher.add_handler(ConversationHandler(
+            entry_points=[MessageHandler(Filters.regex(r"^.+Tranvia de Tenerife.+$"), self.listStops),],
+            states = {
+                TitsaBot.TRANVIA: [MessageHandler(Filters.all, self.queryTram)]
+            },
+            fallbacks=[]
+        ))
 
         updater.dispatcher.add_handler(ConversationHandler(
             entry_points=[CommandHandler("addFav", self.addFavCommand, pass_args=True, pass_user_data=True),
@@ -62,16 +71,31 @@ class TitsaBot:
         updater.idle()
         self.dbHandler.save()
 
-    def build_text(self, status):
+    def build_text(self, status, bus=True):
         if status is not None:
             text = "🚏 *" +  status.name + "* 🚏\n\n"
             for linea, data in status.minutes.iteritems():
-                text += "🚍*" + linea + "* (" + data["dest"] + \
+                emoji = "🚍*" 
+                text += emoji + linea + "* (" + data["dest"] + \
                         "): "+ data["minutes"] + " minutos \n"
             
             return text, 1
         else:
-            text = "⚠ Parada no encontrada o sin guaguas por venir ⚠"
+            text = "⚠ Parada no encontrada o sin pasos registrados ⚠"
+            return text, 0
+
+    def build_text_tram(self, status):
+        if status is not None:
+            text = "🚏 *" +  status.name + "* 🚏\n\n"
+            for linea, data in status.minutes.iteritems():
+                for entry in data:
+                    emoji = "🚊*"
+                    text += emoji + linea + "* (" + entry["dest"] + \
+                            "): "+ entry["minutes"] + " minutos \n"
+            
+            return text, 1
+        else:
+            text = "⚠ Parada no encontrada o sin pasos registrados ⚠"
             return text, 0
 
     def start(self, bot,update):
@@ -102,11 +126,11 @@ class TitsaBot:
     def responder_a_codigo(self, bot,update):
         logging.info(msg="Message %s" %(update.message.text))
         if update.message.text.isdigit() and len(update.message.text) == 4:
-            texto = self.build_text(self.apiHandler.new_request(update.message.text))[0]
+            texto = self.build_text(self.apiHandler.new_request(update.message.text), True)[0]
             button = telegram.InlineKeyboardButton(text="⭐ Añadir a favoritos ⭐", callback_data=update.message.text)
             keyboard = telegram.InlineKeyboardMarkup([[button]])  if not self.dbHandler.check_duplicate(update.message.from_user.id, update.message.text) else None
             bot.send_message(chat_id=update.message.chat_id, text=texto,parse_mode=telegram.ParseMode.MARKDOWN,
-                                                 reply_markup=keyboard)
+                                                 reply_markup=self.keyboard)
         else:
             bot.send_message(chat_id=update.message.chat_id, text="Código inválido")
 
@@ -139,6 +163,26 @@ class TitsaBot:
                                     update.message.text)
         text = "*Favorito añadido*\n" + update.message.text + "(" + user_data["currentFavStationId"] + ")"
         bot.send_message(update.message.chat.id, text=text, reply_markup=self.keyboard, parse_mode=telegram.ParseMode.MARKDOWN)
+        return -1
+
+    def listStops(self, bot, update):
+        logging.info(msg="Listing tram stations")
+        stations = self.apiHandler.tranvia_stations()
+        if stations is not None and len(stations) > 0:
+            buttons = []
+            for station in stations.iteritems():
+                buttons.append([telegram.KeyboardButton(u"🚊" + station[0] + " (" + station[1] + ")")])
+            bot.send_message(update.message.chat.id, text="Elige estación", reply_markup=telegram.ReplyKeyboardMarkup(buttons), resize_keyboard=True)
+            return TitsaBot.TRANVIA
+        return -1 
+
+    def queryTram(self, bot, update):
+        p = re.compile(u"^\U0001F68A.+(\w{3})")
+        stop = p.search(update.message.text).group(1)
+        status = self.apiHandler.tranvia_request(stop)
+        texto = self.build_text_tram(status)[0]
+        bot.send_message(chat_id=update.message.chat_id, text=texto,parse_mode=telegram.ParseMode.MARKDOWN,
+                                                 reply_markup=self.keyboard)
         return -1
 
     def favKeyBoard(self, bot, update):
