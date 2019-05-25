@@ -12,6 +12,7 @@ class CurrentStationStatus:
             self.minutes[line] = [{"dest": dest, "minutes": minutes},] 
         else:
             self.minutes[line].append({"dest": dest, "minutes": minutes})
+            self.minutes[line] = sorted(self.minutes[line], key=lambda item:int(item["minutes"]))
 
 
 class ApiHandler:

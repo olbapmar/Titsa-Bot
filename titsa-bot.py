@@ -75,7 +75,8 @@ class TitsaBot:
     def build_text(self, status, bus=True):
         if status is not None:
             text = "🚏 *" +  status.name + "* 🚏\n\n"
-            for linea, data in status.minutes.iteritems():
+            sorted_lines = sorted(status.minutes.items(), key=lambda line: int(line[1][0]["minutes"]))
+            for linea, data in sorted_lines:
                 for entry in data:
                     emoji = "🚊*"if not bus else "🚍*" 
                     text += emoji + linea + "* (" + entry["dest"] + \
@@ -165,7 +166,7 @@ class TitsaBot:
         return -1 
 
     def queryTram(self, bot, update):
-        p = re.compile(u"^\uE01E.+(\w{3})")
+        p = re.compile(u"^\U0001F68B.+(\w{3})")
         stop = p.search(update.message.text).group(1)
         status = self.apiHandler.tranvia_request(stop)
         texto = self.build_text(status, False)[0]
