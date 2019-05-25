@@ -130,7 +130,7 @@ class TitsaBot:
             button = telegram.InlineKeyboardButton(text="⭐ Añadir a favoritos ⭐", callback_data=update.message.text)
             keyboard = telegram.InlineKeyboardMarkup([[button]])  if not self.dbHandler.check_duplicate(update.message.from_user.id, update.message.text) else None
             bot.send_message(chat_id=update.message.chat_id, text=texto,parse_mode=telegram.ParseMode.MARKDOWN,
-                                                 reply_markup=self.keyboard)
+                                                 reply_markup=keyboard)
         else:
             bot.send_message(chat_id=update.message.chat_id, text="Código inválido")
 
