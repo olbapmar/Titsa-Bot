@@ -71,25 +71,13 @@ class TitsaBot:
         updater.idle()
         self.dbHandler.save()
 
+
     def build_text(self, status, bus=True):
         if status is not None:
             text = "🚏 *" +  status.name + "* 🚏\n\n"
             for linea, data in status.minutes.iteritems():
-                emoji = "🚍*" 
-                text += emoji + linea + "* (" + data["dest"] + \
-                        "): "+ data["minutes"] + " minutos \n"
-            
-            return text, 1
-        else:
-            text = "⚠ Parada no encontrada o sin pasos registrados ⚠"
-            return text, 0
-
-    def build_text_tram(self, status):
-        if status is not None:
-            text = "🚏 *" +  status.name + "* 🚏\n\n"
-            for linea, data in status.minutes.iteritems():
                 for entry in data:
-                    emoji = "🚊*"
+                    emoji = "🚊*"if not bus else "🚍*" 
                     text += emoji + linea + "* (" + entry["dest"] + \
                             "): "+ entry["minutes"] + " minutos \n"
             
@@ -171,16 +159,16 @@ class TitsaBot:
         if stations is not None and len(stations) > 0:
             buttons = []
             for station in stations.iteritems():
-                buttons.append([telegram.KeyboardButton(u"🚊" + station[0] + " (" + station[1] + ")")])
+                buttons.append([telegram.KeyboardButton(u"🚋" + station[0] + " (" + station[1] + ")")])
             bot.send_message(update.message.chat.id, text="Elige estación", reply_markup=telegram.ReplyKeyboardMarkup(buttons), resize_keyboard=True)
             return TitsaBot.TRANVIA
         return -1 
 
     def queryTram(self, bot, update):
-        p = re.compile(u"^\U0001F68A.+(\w{3})")
+        p = re.compile(u"^\uE01E.+(\w{3})")
         stop = p.search(update.message.text).group(1)
         status = self.apiHandler.tranvia_request(stop)
-        texto = self.build_text_tram(status)[0]
+        texto = self.build_text(status, False)[0]
         bot.send_message(chat_id=update.message.chat_id, text=texto,parse_mode=telegram.ParseMode.MARKDOWN,
                                                  reply_markup=self.keyboard)
         return -1
@@ -209,9 +197,6 @@ class TitsaBot:
         code = p.search(update.message.text).group(1)
         self.dbHandler.deleteUserFav(update.message.from_user.id, code)
         bot.send_message(update.message.chat.id, text="Favorito eliminado", reply_markup=self.keyboard, resize_keyboard=True)
-
-        
-
 
 def main():
     botTitsa = TitsaBot()

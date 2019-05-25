@@ -2,14 +2,8 @@ import urllib2
 import xml.etree.ElementTree as ET
 import json
 
-class CurrentStationStatus:
-    def __init__(self, name):
-        self.name = name
-        self.minutes = {}
-    def add_line(self, line, dest, minutes):
-        self.minutes[line] = {"dest": dest, "minutes": minutes}
 
-class CurrentTramStationStatus:
+class CurrentStationStatus:
     def __init__(self, name):
         self.name = name
         self.minutes = {}
@@ -89,7 +83,7 @@ class ApiHandler:
             for entry in json_object:
                 if stop == entry[u"stop"]:
                     if status is None:
-                        status = CurrentTramStationStatus(entry[u"stopDescription"])
+                        status = CurrentStationStatus(entry[u"stopDescription"])
                     status.add_line("L"+str(entry[u"route"]), entry[u"destinationStopDescription"], str(entry[u"remainingMinutes"]))
 
             return status

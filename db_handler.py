@@ -17,10 +17,12 @@ class DbHandler:
         self.cursor.execute("""INSERT INTO favs
         VALUES (?,?,?);
         """, (user, station, name))
+        self.conn.commit()
 
     def deleteUserFav(self, user, station):
         self.cursor.execute("""DELETE FROM favs
         WHERE userId=? AND station=?;""", (user,station))
+        self.conn.commit()
 
     def getUserFavs(self, user):
         self.cursor.execute("""SELECT * FROM favs
