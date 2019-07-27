@@ -16,7 +16,7 @@ sys.setdefaultencoding('utf-8')
 apiHandler = None
 
 class TitsaBot:
-    CUSTOM_OR_DEFAULT, INSERT_CUSTOM, TRANVIA = range(3)
+    CUSTOM_OR_DEFAULT, INSERT_CUSTOM, TRANVIA, BROADCAST_TEXT = range(4)
     def __init__(self):
         config = ConfigParser.ConfigParser()
         config.read('bot_config.ini')
@@ -52,12 +52,18 @@ class TitsaBot:
         updater.dispatcher.add_handler(h3)
         updater.dispatcher.add_handler(h4)
 
-        updater.dispatcher.add_handler(CommandHandler("broadcast", self.broadcast, pass_args=True))
-
         updater.dispatcher.add_handler(ConversationHandler(
             entry_points=[MessageHandler(Filters.regex(r"^.+Tranvia de Tenerife.+$"), self.listStops),],
             states = {
                 TitsaBot.TRANVIA: [MessageHandler(Filters.all, self.queryTram)]
+            },
+            fallbacks=[]
+        ))
+
+        updater.dispatcher.add_handler(ConversationHandler(
+            entry_points=[CommandHandler("broadcast", self.newBroadcast),],
+            states = {
+                TitsaBot.BROADCAST_TEXT: [MessageHandler(Filters.all, self.broadcast)]
             },
             fallbacks=[]
         ))
@@ -210,12 +216,17 @@ class TitsaBot:
         self.dbHandler.deleteUserFav(update.message.from_user.id, code)
         bot.send_message(update.message.chat.id, text="Favorito eliminado", reply_markup=self.keyboard, resize_keyboard=True)
 
-    def broadcast(self, bot, update, args):
-        logging.info(msg="Broadcasting message %s" %(args[0]))
+    def broadcast(self, bot, update):
+        logging.info(msg="Broadcasting message %s")
         if (update.message.chat.id == int(self.adminId)):
             for user in self.dbHandler.getAllUsers():
                 logging.info(msg="Broadcasted to %s" %(user))
-                bot.send_message(str(user), text=args[0], reply_markup=self.keyboard, resize_keyboard=True)
+                bot.send_message(str(user), text=update.message.text, reply_markup=self.keyboard, resize_keyboard=True)
+
+        return -1 
+
+    def newBroadcast(self, bot, update):
+        return TitsaBot.BROADCAST_TEXT
                 
 
 def main():
