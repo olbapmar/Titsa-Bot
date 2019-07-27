@@ -211,10 +211,12 @@ class TitsaBot:
         bot.send_message(update.message.chat.id, text="Favorito eliminado", reply_markup=self.keyboard, resize_keyboard=True)
 
     def broadcast(self, bot, update, args):
+        logging.info(msg="Broadcasting message %s" %(args[0]))
         if (update.message.chat.id == int(self.adminId)):
             for user in self.dbHandler.getAllUsers():
-                print(user)
+                logging.info(msg="Broadcasted to %s" %(user))
                 bot.send_message(str(user), text=args[0], reply_markup=self.keyboard, resize_keyboard=True)
+                
 
 def main():
     botTitsa = TitsaBot()
