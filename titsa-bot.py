@@ -24,6 +24,9 @@ class TitsaBot:
         bot_token = config.get("TELEGRAM", "token")
 
         titsa_idApp = config.get("TITSA", "idApp")
+
+        self.adminId = config.get("ADMIN", "chatId")
+
         self.apiHandler = ApiHandler(titsa_idApp)
 
         self.dbHandler = DbHandler()
@@ -48,6 +51,8 @@ class TitsaBot:
         updater.dispatcher.add_handler(h2)
         updater.dispatcher.add_handler(h3)
         updater.dispatcher.add_handler(h4)
+
+        updater.dispatcher.add_handler(CommandHandler("broadcast", self.broadcast, pass_args=True))
 
         updater.dispatcher.add_handler(ConversationHandler(
             entry_points=[MessageHandler(Filters.regex(r"^.+Tranvia de Tenerife.+$"), self.listStops),],
@@ -76,6 +81,7 @@ class TitsaBot:
         if status is not None:
             text = "🚏 *" +  status.name + "* 🚏\n\n"
             sorted_lines = sorted(status.minutes.items(), key=lambda line: int(line[1][0]["minutes"]))
+            print(sorted_lines)
             for linea, data in sorted_lines:
                 for entry in data:
                     emoji = "🚊*"if not bus else "🚍*" 
@@ -113,6 +119,9 @@ class TitsaBot:
             return TitsaBot.CUSTOM_OR_DEFAULT
 
     def responder_a_codigo(self, bot,update):
+        if not self.dbHandler.check_duplicate_user(update.message.chat_id):
+            self.dbHandler.addUser(update.message.chat_id)
+
         logging.info(msg="Message %s" %(update.message.text))
         if update.message.text.isdigit() and len(update.message.text) == 4:
             texto = self.build_text(self.apiHandler.new_request(update.message.text), True)[0]
@@ -155,6 +164,8 @@ class TitsaBot:
         return -1
 
     def listStops(self, bot, update):
+        if not self.dbHandler.check_duplicate_user(update.message.chat_id):
+            self.dbHandler.addUser(update.message.chat_id)
         logging.info(msg="Listing tram stations")
         stations = self.apiHandler.tranvia_stations()
         if stations is not None and len(stations) > 0:
@@ -198,6 +209,12 @@ class TitsaBot:
         code = p.search(update.message.text).group(1)
         self.dbHandler.deleteUserFav(update.message.from_user.id, code)
         bot.send_message(update.message.chat.id, text="Favorito eliminado", reply_markup=self.keyboard, resize_keyboard=True)
+
+    def broadcast(self, bot, update, args):
+        if (update.message.chat.id == int(self.adminId)):
+            for user in self.dbHandler.getAllUsers():
+                print(user)
+                bot.send_message(str(user), text=args[0], reply_markup=self.keyboard, resize_keyboard=True)
 
 def main():
     botTitsa = TitsaBot()

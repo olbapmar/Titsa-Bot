@@ -13,10 +13,21 @@ class DbHandler:
         PRIMARY KEY(userId, station)
         );""")
 
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS users(
+            userId integer,
+            PRIMARY KEY(userId)
+        );""")
+
     def addUserFav(self, user, station, name):
         self.cursor.execute("""INSERT INTO favs
         VALUES (?,?,?);
         """, (user, station, name))
+        self.conn.commit()
+
+    def addUser(self, user):
+        self.cursor.execute("""INSERT INTO users
+        VALUES (?);
+        """, (user,))
         self.conn.commit()
 
     def deleteUserFav(self, user, station):
@@ -36,9 +47,26 @@ class DbHandler:
             stations.append((str(station), name))
         return stations
 
+    def getAllUsers(self):
+        self.cursor.execute("""SELECT * FROM users;""")
+
+        rows = self.cursor.fetchall()
+
+        users = []
+        for row in rows:
+            user = row[0]
+            users.append(user)
+        return users
+
     def check_duplicate(self, user, station):
         self.cursor.execute("""SELECT * FROM favs
         WHERE userId=? AND station=?;""",(user, station))
+
+        return len(self.cursor.fetchall()) > 0
+
+    def check_duplicate_user(self, user):
+        self.cursor.execute("""SELECT * FROM users
+        WHERE userId=?;""",(user,))
 
         return len(self.cursor.fetchall()) > 0
 
@@ -46,3 +74,4 @@ class DbHandler:
         self.conn.commit()
         self.conn.close()
         logging.info(msg="Saving database")
+
