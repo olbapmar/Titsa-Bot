@@ -78,6 +78,14 @@ class TitsaBot:
             fallbacks= [h1,h2,h3,h4]
         ))
 
+        updater.dispatcher.add_handler(ConversationHandler(
+            entry_points=[CallbackQueryHandler(self.reloadStationQuery, pattern=r"^Repetir \d{4}$", pass_user_data=True)],
+            states = {
+                TitsaBot.CUSTOM_OR_DEFAULT: [CallbackQueryHandler(self.reloadStationQuery, pass_user_data=True)]
+            },
+            fallbacks= [h1,h2,h3,h4]
+        ))
+
         updater.start_polling()
         updater.idle()
         self.dbHandler.save()
@@ -108,6 +116,10 @@ class TitsaBot:
     def addFavQuery(self, bot,update, user_data):
         return self.newFavMethod(update.callback_query.from_user.id, update.callback_query.data, bot, update.callback_query.message.chat.id, user_data)
 
+    def reloadStationQuery(self, bot, update, user_data):
+        codeText = update.callback_query.data.replace("Repetir ", "")
+        self.stationQuery(bot, update.callback_query.message.chat_id, update.callback_query.from_user.id, codeText)
+
     def newFavMethod(self, user, station, bot, chat, user_data):
         if self.dbHandler.check_duplicate(user, station):
             bot.send_message(chat_id=chat, text="Ya está en favoritos", reply_markup=None)
@@ -125,20 +137,25 @@ class TitsaBot:
             return TitsaBot.CUSTOM_OR_DEFAULT
 
     def responder_a_codigo(self, bot,update):
-        if not self.dbHandler.check_duplicate_user(update.message.chat_id):
-            self.dbHandler.addUser(update.message.chat_id)
+        self.stationQuery(bot, update.message.chat_id, update.message.from_user.id, update.message.text)
 
-        logging.info(msg="Message %s" %(update.message.text))
-        if update.message.text.isdigit() and len(update.message.text) == 4:
-            texto = self.build_text(self.apiHandler.new_request(update.message.text), True)[0]
-            button = telegram.InlineKeyboardButton(text="⭐ Añadir a favoritos ⭐", callback_data=update.message.text)
-            keyboard = telegram.InlineKeyboardMarkup([[button]])  if not self.dbHandler.check_duplicate(update.message.from_user.id, update.message.text) else None
-            bot.send_message(chat_id=update.message.chat_id, text=texto,parse_mode=telegram.ParseMode.MARKDOWN,
-                                                 reply_markup=keyboard)
+    def stationQuery(self, bot, chat_id, user_id, text):
+        if not self.dbHandler.check_duplicate_user(chat_id):
+            self.dbHandler.addUser(chat_id)
+        logging.info(msg="Message %s" %(text))
+        if text.isdigit() and len(text) == 4:
+            texto = self.build_text(self.apiHandler.new_request(text), True)[0]
+            button = telegram.InlineKeyboardButton(text="⭐ Añadir a favoritos ⭐", callback_data=text)
+            buttonReload = telegram.InlineKeyboardButton(text="🔃 Repetir consulta 🔃", callback_data="Repetir "+text)
+            if not self.dbHandler.check_duplicate(user_id, text):
+                keyboard = telegram.InlineKeyboardMarkup([[button],[buttonReload]])
+            else:
+                keyboard = telegram.InlineKeyboardMarkup([[buttonReload]])
+            bot.send_message(chat_id=chat_id, text=texto,parse_mode=telegram.ParseMode.MARKDOWN, reply_markup=keyboard)
         else:
-            bot.send_message(chat_id=update.message.chat_id, text="Código inválido")
+            bot.send_message(chat_id=chat_id, text="Código inválido")
 
-        bot.send_message(chat_id=update.message.chat_id, text="Escribe el número de parada", reply_markup=self.keyboard)
+        bot.send_message(chat_id=chat_id, text="Escribe el número de parada", reply_markup=self.keyboard)
 
     def setFavNameOption(self, bot, update, user_data):
         logging.info(msg="Answer for the fav question: user:%s reply:%s" %(update.callback_query.from_user.id, update.callback_query.data))
