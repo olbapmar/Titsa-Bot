@@ -1,4 +1,4 @@
-import urllib2
+import urllib
 import xml.etree.ElementTree as ET
 import json
 
@@ -26,8 +26,7 @@ class ApiHandler:
     def new_request(self, id):
         url_final = ApiHandler.URL + str(id) + ApiHandler.URL2 + self.idApp
         
-        req = urllib2.Request(url_final)
-        response = urllib2.urlopen(req)
+        response = urllib.request.urlopen(url_final)
 
         if response.getcode() == 200:
             text = response.read().decode('utf8')
@@ -44,22 +43,21 @@ class ApiHandler:
         return None
 
     
-
+    '''
     def station_name(self, id):
         url_final = ApiHandler.URL + str(id) + ApiHandler.URL2 + self.idApp
         
-        req = urllib2.Request(url_final)
-        response = urllib2.urlopen(req)
+        response = urllib.request.urlopen(url_final)
 
         if response.getcode() == 200:
             text = response.read().decode('utf8')
             root = ET.fromstring(text.encode('utf8'))
             return root[0].find("denominacion").text
         return None
+    '''
 
     def tranvia_stations(self):
-        req = urllib2.Request(ApiHandler.URL_TRANVIA)
-        response = urllib2.urlopen(req)
+        response = urllib.request.urlopen(ApiHandler.URL_TRANVIA)
 
         if response.getcode() == 200:
             text = response.read().decode('utf8')
@@ -73,8 +71,7 @@ class ApiHandler:
         return None
 
     def tranvia_request(self, stop):
-        req = urllib2.Request(ApiHandler.URL_TRANVIA)
-        response = urllib2.urlopen(req)
+        response = urllib.request.urlopen(ApiHandler.URL_TRANVIA)
         print(stop)
         if response.getcode() == 200:
             text = response.read().decode('utf8')
